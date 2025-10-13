@@ -158,12 +158,12 @@ def compute_metrics(
         )
         cat_iou = ret_metrics[2]
     # broadcast metrics from 0 to all nodes
-    ## ABRAR EDIT START ##
+    ## ABRAR EDIT START
     #if distributed:
         #dist.broadcast(ret_metrics_mean, 0)
     if distributed and dist.is_initialized():
         dist.broadcast(ret_metrics_mean, 0)
-    ## ABRAR EDIT END ##
+    ## ABRAR EDIT END
     pix_acc, mean_acc, miou = ret_metrics_mean
     ret = dict(pixel_accuracy=pix_acc, mean_accuracy=mean_acc, mean_iou=miou)
     if ret_cat_iou and ptu.dist_rank == 0:
