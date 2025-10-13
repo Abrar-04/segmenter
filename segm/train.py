@@ -68,16 +68,23 @@ def main(
     resume,
 ):
     # start distributed mode
-    ## ABRAR EDIT START ##
+    ## ABRAR EDIT START 
     #ptu.set_gpu_mode(True)
     #distributed.init_process()
+    # --- Auto-detect single vs distributed mode ---
     ptu.set_gpu_mode(True)
-    ptu.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ptu.world_size = 1
-    ptu.dist_rank = 0
-    ptu.distributed = False
-    print("✅ Running in single-GPU mode — SLURM disabled.")
-    ## ABRAR EDIT END ##
+    
+    try:
+        distributed.init_process()
+        print("✅ Running in distributed mode.")
+    except Exception as e:
+        # Fallback to single-GPU
+        ptu.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        ptu.world_size = 1
+        ptu.dist_rank = 0
+        ptu.distributed = False
+        print("✅ Running in single-GPU mode (no SLURM detected).")
+    ## ABRAR EDIT END
 
     # set up configuration
     cfg = config.load_config()
@@ -212,14 +219,14 @@ def main(
             loss_scaler.load_state_dict(checkpoint["loss_scaler"])
         lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
         variant["algorithm_kwargs"]["start_epoch"] = checkpoint["epoch"] + 1
-    ## ABRAR EDIT START ##
-    #else:
-        #sync_model(log_dir, model)
-    #if ptu.distributed:
-        #model = DDP(model, device_ids=[ptu.device], find_unused_parameters=True)
-    ## ABRAR EDIT END ##
+    else:
+        if ptu.distributed:
+            sync_model(log_dir, model)
+    if ptu.distributed:
+        model = DDP(model, device_ids=[ptu.device], find_unused_parameters=True)
+    ## ABRAR EDIT END
     
-    # save config
+    # -- save config
     variant_str = yaml.dump(variant)
     print(f"Configuration:\n{variant_str}")
     variant["net_kwargs"] = net_kwargs
@@ -305,14 +312,17 @@ def main(
                 f.write(json.dumps(log_stats) + "\n")
 
 
-    ## ABRAR EDIT START ##
-    #distributed.barrier()
-    #distributed.destroy_process()
+    ## ABRAR EDIT START 
+    if ptu.distributed: 
+        distributed.barrier()
+        distributed.destroy_process()
+        print("✅ Training finished successfully (distributed GPU).")
     #sys.exit(1)
     # --- Skip distributed cleanup for single GPU ---
-    print("✅ Training finished successfully (single GPU).")
+    else:
+        print("✅ Training finished successfully (single GPU).")
     sys.exit(0)
-    ## ABRAR EDIT END ##
+    ## ABRAR EDIT END
 
 
 if __name__ == "__main__":
