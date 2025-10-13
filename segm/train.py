@@ -212,10 +212,9 @@ def main(
             loss_scaler.load_state_dict(checkpoint["loss_scaler"])
         lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
         variant["algorithm_kwargs"]["start_epoch"] = checkpoint["epoch"] + 1
-    else:
-        sync_model(log_dir, model)
-        
     ## ABRAR EDIT START ##
+    #else:
+        #sync_model(log_dir, model)
     #if ptu.distributed:
         #model = DDP(model, device_ids=[ptu.device], find_unused_parameters=True)
     ## ABRAR EDIT END ##
