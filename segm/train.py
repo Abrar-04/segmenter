@@ -68,8 +68,16 @@ def main(
     resume,
 ):
     # start distributed mode
+    ## ABRAR EDIT START ##
+    #ptu.set_gpu_mode(True)
+    #distributed.init_process()
     ptu.set_gpu_mode(True)
-    distributed.init_process()
+    ptu.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ptu.world_size = 1
+    ptu.dist_rank = 0
+    ptu.distributed = False
+    print("✅ Running in single-GPU mode — SLURM disabled.")
+    ## ABRAR EDIT END ##
 
     # set up configuration
     cfg = config.load_config()
@@ -206,10 +214,12 @@ def main(
         variant["algorithm_kwargs"]["start_epoch"] = checkpoint["epoch"] + 1
     else:
         sync_model(log_dir, model)
-
-    if ptu.distributed:
-        model = DDP(model, device_ids=[ptu.device], find_unused_parameters=True)
-
+        
+    ## ABRAR EDIT START ##
+    #if ptu.distributed:
+        #model = DDP(model, device_ids=[ptu.device], find_unused_parameters=True)
+    ## ABRAR EDIT END ##
+    
     # save config
     variant_str = yaml.dump(variant)
     print(f"Configuration:\n{variant_str}")
@@ -295,9 +305,15 @@ def main(
             with open(log_dir / "log.txt", "a") as f:
                 f.write(json.dumps(log_stats) + "\n")
 
-    distributed.barrier()
-    distributed.destroy_process()
-    sys.exit(1)
+
+    ## ABRAR EDIT START ##
+    #distributed.barrier()
+    #distributed.destroy_process()
+    #sys.exit(1)
+    # --- Skip distributed cleanup for single GPU ---
+    print("✅ Training finished successfully (single GPU).")
+    sys.exit(0)
+    ## ABRAR EDIT END ##
 
 
 if __name__ == "__main__":
