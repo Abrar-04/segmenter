@@ -73,10 +73,13 @@ def main(
     #distributed.init_process()
     # --- Auto-detect single vs distributed mode ---
     ptu.set_gpu_mode(True)
-    
+    is_slurm = any(v in os.environ for v in ["SLURM_PROCID", "WORLD_SIZE", "RANK", "LOCAL_RANK"])
     try:
-        distributed.init_process()
-        print("✅ Running in distributed mode.")
+        if is_slurm:
+            distributed.init_process()
+            print("✅ Running in distributed mode.")
+        else:
+            raise RuntimeError("No SLURM or torchrun environment detected.")
     except Exception as e:
         # Fallback to single-GPU
         ptu.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
