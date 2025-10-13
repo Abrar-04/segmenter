@@ -101,7 +101,11 @@ def evaluate(
         seg_pred = seg_pred.cpu().numpy()
         val_seg_pred[filename] = seg_pred
 
-    val_seg_pred = gather_data(val_seg_pred)
+    ## ABRAR EDIT START ##
+    #val_seg_pred = gather_data(val_seg_pred)
+    if ptu.distributed:
+        val_seg_pred = gather_data(val_seg_pred)
+    ## ABRAR EDIT END ##
     scores = compute_metrics(
         val_seg_pred,
         val_seg_gt,
