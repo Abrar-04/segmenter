@@ -45,20 +45,23 @@ https://github.com/open-mmlab/mmsegmentation/blob/master/mmseg/apis/test.py#L160
 # -- Safeguard to make it run on a single GPU ALSO
 def gather_data(seg_pred, tmp_dir=None):
     """
-    distributed data gathering
-    prediction and ground truth are stored in a common tmp directory
-    and loaded on the master node to compute metrics
+    Distributed data gathering.
+
+    Prediction and ground truth are stored in a common temporary directory
+    and loaded on the master node to compute metrics.
     """
     # --- Single GPU safeguard ---
     if not dist.is_available() or not dist.is_initialized():
-        # No distributed group -> just return predictions as-is
+        # No distributed process group -> nothing to gather
         return seg_pred
 
     if tmp_dir is None:
         tmpprefix = os.path.expandvars("$DATASET/temp")
     else:
         tmpprefix = os.path.expandvars(tmp_dir)
+
     MAX_LEN = 512
+    # 32 is whitespace
     dir_tensor = torch.full((MAX_LEN,), 32, dtype=torch.uint8, device=ptu.device)
     if ptu.dist_rank == 0:
         tmpdir = tempfile.mkdtemp(prefix=tmpprefix)
@@ -66,20 +69,24 @@ def gather_data(seg_pred, tmp_dir=None):
             bytearray(tmpdir.encode()), dtype=torch.uint8, device=ptu.device
         )
         dir_tensor[: len(tmpdir)] = tmpdir
-    # broadcast tmpdir from 0 to the other nodes
+
+    # broadcast tmpdir from rank 0 to others
     dist.broadcast(dir_tensor, 0)
     tmpdir = dir_tensor.cpu().numpy().tobytes().decode().rstrip()
     tmpdir = Path(tmpdir)
 
+    # Save per-rank results and then gather on rank 0
     tmp_file = tmpdir / f"part_{ptu.dist_rank}.pkl"
     pkl.dump(seg_pred, open(tmp_file, "wb"))
     dist.barrier()
+
     seg_pred = {}
     if ptu.dist_rank == 0:
         for i in range(ptu.world_size):
             part_seg_pred = pkl.load(open(tmpdir / f"part_{i}.pkl", "rb"))
             seg_pred.update(part_seg_pred)
         shutil.rmtree(tmpdir)
+
     return seg_pred
 
 
