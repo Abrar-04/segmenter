@@ -118,10 +118,10 @@ def compute_metrics(
         ret_metrics = [ret_metrics["aAcc"], ret_metrics["Acc"], ret_metrics["IoU"]]
         ret_metrics_mean = torch.tensor(
             [
-                np.round(np.nanmean(ret_metric.astype(np.float)) * 100, 2)
+                np.round(np.nanmean(ret_metric.astype(float)) * 100, 2)
                 for ret_metric in ret_metrics
             ],
-            dtype=float,
+            dtype=torch.float32,
             device=ptu.device,
         )
         cat_iou = ret_metrics[2]
