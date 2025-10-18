@@ -94,6 +94,15 @@ model:
     n_heads: 16
     n_layers: 24
     normalization: vit
+  #Added new  
+  vit_tiny_patch16_224:
+    image_size: 224
+    patch_size: 16
+    d_model: 192
+    n_heads: 3
+    n_layers: 12
+    normalization: vit
+    distilled: false
 decoder:
   linear: {}
   deeplab_dec:
