@@ -18,6 +18,10 @@ from segm.model.segmenter import Segmenter
 import segm.utils.torch as ptu
 
 
+#abrar
+from segm.model.hydravit import HydraViT
+from segm.model.hydraEncoderWrapper import HydraViTEncoder
+
 @register_model
 def vit_base_patch8_384(pretrained=False, **kwargs):
     """ViT-Base model (ViT-B/16) from original paper (https://arxiv.org/abs/2010.11929).
@@ -77,7 +81,6 @@ def create_vit(model_cfg):
 
     return model
 
-
 def create_decoder(encoder, decoder_cfg):
     decoder_cfg = decoder_cfg.copy()
     name = decoder_cfg.pop("name")
@@ -103,7 +106,8 @@ def create_segmenter(model_cfg):
     decoder_cfg = model_cfg.pop("decoder")
     decoder_cfg["n_cls"] = model_cfg["n_cls"]
 
-    encoder = create_vit(model_cfg)
+    #encoder = create_vit(model_cfg)
+    encoder = create_hvit(model_cfg)
     decoder = create_decoder(encoder, decoder_cfg)
     model = Segmenter(encoder, decoder, n_cls=model_cfg["n_cls"])
 
@@ -123,3 +127,62 @@ def load_model(model_path):
     model.load_state_dict(checkpoint, strict=True)
 
     return model, variant
+
+
+
+#abrar
+def create_hvit(model_cfg):
+    """
+    To create a HydraViT encoder instead of VisionTransformer.
+    """
+    model_cfg = model_cfg.copy()
+    backbone = model_cfg.pop("backbone","hydravit_dyn_patch16_224")
+    
+    # Remove unused normalization pop if HydraViT doesn't expect it
+    model_cfg.pop("normalization", None)
+
+    '''
+    # timm load not necessary anymore
+
+    normalization = model_cfg.pop("normalization")
+    model_cfg["n_cls"] = 1000
+    mlp_expansion_ratio = 4
+    model_cfg["d_ff"] = mlp_expansion_ratio * model_cfg["d_model"]
+
+    if backbone in default_cfgs:
+        default_cfg = default_cfgs[backbone]
+    else:
+        default_cfg = dict(
+            pretrained=False,
+            num_classes=1000,
+            drop_rate=0.0,
+            drop_path_rate=0.0,
+            drop_block_rate=None,
+        )
+
+    default_cfg["input_size"] = (
+        3,
+        model_cfg["image_size"][0],
+        model_cfg["image_size"][1],
+    )
+    '''
+    # Already set in hvit init, but just to be sure
+    # Set core parameters if not provided
+    model_cfg.setdefault("global_pool", "token")
+    model_cfg.setdefault("class_token", True)
+    model_cfg.setdefault("embed_dim", model_cfg.get("d_model", 768))
+    model_cfg.setdefault("img_size", model_cfg.get("image_size", (224, 224)))
+
+
+    model = HydraViTEncoder(**model_cfg)
+    # Initialize weights using HydraViT's internal function
+    model.init_weights(mode="jax")
+    '''
+    if backbone == "vit_base_patch8_384":
+        path = os.path.expandvars("$TORCH_HOME/hub/checkpoints/vit_base_patch8_384.pth")
+        state_dict = torch.load(path, map_location="cpu")
+        filtered_dict = checkpoint_filter_fn(state_dict, model)
+        model.load_state_dict(filtered_dict, strict=True)
+    '''
+
+    return model

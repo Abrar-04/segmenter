@@ -1,4 +1,19 @@
 model:
+  # hydravit
+  hydravit_dyn_patch16_224:
+    image_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 12
+    num_heads: 12
+    mlp_ratio: 4
+    global_pool: "token"
+    class_token: True
+    drop_path_rate: 0.0
+    dropout: 0.1
+    distilled: false  # retained for Segmenter compatibility
+    normalization: vit
+
   # deit
   deit_tiny_distilled_patch16_224:
     image_size: 224

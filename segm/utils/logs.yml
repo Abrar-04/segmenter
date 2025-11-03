@@ -1,8 +1,0 @@
-root: /content/drive/MyDrive/segmenter
-logs:
-  seg-tiny-mask: seg_tiny_mask/log.txt
-
-# optional settings
-vmin: 0.0          # minimum for y-axis
-vmax: 100.0        # maximum for y-axis (useful for IoU or accuracy)
-epochs: 64         # total epochs to show (if your log has fewer, it auto-adjusts)

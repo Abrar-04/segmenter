@@ -37,7 +37,8 @@ class Segmenter(nn.Module):
         x = self.encoder(im, return_features=True)
 
         # remove CLS/DIST tokens for decoding
-        num_extra_tokens = 1 + self.encoder.distilled
+        #num_extra_tokens = 1 + self.encoder.distilled
+        num_extra_tokens = getattr(self.encoder, "num_prefix_tokens", 1)
         x = x[:, num_extra_tokens:]
 
         masks = self.decoder(x, (H, W))

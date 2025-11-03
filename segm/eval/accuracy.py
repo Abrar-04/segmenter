@@ -5,7 +5,7 @@ import segm.utils.torch as ptu
 
 from segm.utils.logger import MetricLogger
 
-from segm.model.factory import create_vit
+from segm.model.factory import create_vit,create_hvit
 from segm.data.factory import create_dataset
 from segm.data.utils import STATS
 from segm.metrics import accuracy
@@ -65,7 +65,8 @@ def main(backbone, imagenet_dir, batch_size, num_workers, gpu):
         normalization=STATS[cfg["normalization"]],
     )
 
-    model = create_vit(cfg)
+    #model = create_vit(cfg)
+    model = create_hvit(cfg)
     model.to(ptu.device)
     model.eval()
     eval_dataset(model, dataset_kwargs)
